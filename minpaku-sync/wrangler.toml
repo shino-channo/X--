@@ -1,0 +1,12 @@
+name = "minpaku-sync"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# 10分ごとに各予約サイトのカレンダーを取りに行く
+[triggers]
+crons = ["*/10 * * * *"]
+
+[[kv_namespaces]]
+binding = "STORE"
+# `npx wrangler kv namespace create STORE` で表示された id に置き換える
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
