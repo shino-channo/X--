@@ -20,7 +20,48 @@ Agoda ──┘                                 └─▶ Agoda には Airbnb + 
 - iCal ではゲスト名・人数・金額は取得できません
 - Agoda の iCal 連携は物件の種類（Agoda Homes など）によって使えない場合があります。管理画面（YCS）で確認してください
 
-## セットアップ（PC で1回だけ・約15分）
+## セットアップ（iPad / スマホの Safari だけでできます・約20分）
+
+必要なもの：無料の Cloudflare アカウント。コマンドは使いません。
+※ Cloudflare 側のメニュー名は変わることがあります。見つからないときは近い名前のものを探してください。
+
+### 1. Cloudflare に登録
+[dash.cloudflare.com](https://dash.cloudflare.com/sign-up) で無料アカウントを作ります。
+
+### 2. 予約データの保存場所（KV）を作る
+左メニュー「ストレージとデータベース」→「Workers KV」→「作成」。名前は `minpaku-store`。
+
+### 3. Worker を作る
+1. 左メニュー「Workers & Pages」→「作成」→「Hello World から開始」
+2. 名前を `minpaku-sync` にして「デプロイ」
+3. 「コードを編集」を開き、中身を**全部消す**
+4. 別タブで [worker.js](https://github.com/shino-channo/X--/blob/claude/x-viral-post-trends-j58m1u/minpaku-sync/worker.js) を開き、右上の「Copy raw file」（コピーのアイコン）で全文コピー
+5. Cloudflare のエディタに貼り付けて「デプロイ」
+
+### 4. 設定を入れる（Worker の「設定」タブ）
+**バインディング** →「追加」→「KV 名前空間」
+- 変数名 `STORE`、KV 名前空間は手順2の `minpaku-store`
+
+**変数とシークレット** →「追加」→ タイプは **シークレット**
+
+| 名前 | 値 |
+|---|---|
+| `ADMIN_PASSWORD` | 管理画面のパスワード |
+| `EXPORT_TOKEN` | 20文字以上の適当な英数字（例: `k3x9Qm2pL8vR4tY7wZ1n`）。書き出しURLの一部になり、推測されないためのもの |
+| `ICAL_AIRBNB` | Airbnb のエクスポート用 iCal URL |
+| `ICAL_BOOKING` | Booking.com のエクスポート用 iCal URL |
+| `ICAL_AGODA` | Agoda のエクスポート用 iCal URL |
+| `NTFY_TOPIC` | （任意）スマホ通知用。下の「スマホ通知」参照 |
+
+まだ開設していないサイトの URL は、後から追加すれば OK です。
+
+**トリガーイベント**（またはトリガー）→「追加」→「Cron トリガー」→ `*/10 * * * *`（10分ごと）
+
+### 5. 開く
+`https://minpaku-sync.<あなたのサブドメイン>.workers.dev` を Safari で開き、パスワードを入力します（ユーザー名は何でもOK）。
+共有ボタン →「ホーム画面に追加」でアプリのように使えます。右上の「今すぐ同期」を押すと、すぐに各サイトの予約を読み込みます。
+
+## セットアップ（PC でコマンドを使う場合）
 
 必要なもの：Node.js 20以上、無料の Cloudflare アカウント
 
@@ -59,7 +100,7 @@ npx wrangler deploy
 
 ### スマホ通知（任意）
 1. スマホに無料アプリ [ntfy](https://ntfy.sh/) を入れ、推測されにくい名前のトピック（例: `minpaku-8f3k2x9q`）を購読します
-2. `npx wrangler secret put NTFY_TOPIC` で同じ名前を設定します
+2. 同じ名前を `NTFY_TOPIC` として設定します（iPad なら手順4のシークレット、PC なら `npx wrangler secret put NTFY_TOPIC`）
 
 日程が重なる予約を見つけると、すぐにプッシュ通知が届きます。
 
@@ -68,4 +109,5 @@ npx wrangler deploy
 ```bash
 npm test        # テスト
 npm run dev     # ローカル実行（.dev.vars に上記の値を書く）
+npm run build   # src/ を変更したら worker.js を作り直す
 ```
